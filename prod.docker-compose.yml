@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres-hogwarts-prod:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    restart: always
+
+  backend-hogwarts-prod:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - IN_DOCKER=true
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - postgres-hogwarts-prod
+    restart: on-failure
+
+  frontend-hogwarts-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend-hogwarts-prod
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+
+  # Adminer for database management (enabled only when needed)
+  adminer-hogwarts-prod:
+    image: adminer:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres-hogwarts-prod
+    depends_on:
+      - postgres-hogwarts-prod
+    # In production, you might want to restrict access to adminer
+    # To disable, you can add the 'profiles' section and use docker-compose --profile admin up
+    profiles: ["admin"]
+
+volumes:
+  postgres_data_prod:

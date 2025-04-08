@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres-hogwarts-dev:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    restart: always
+
+  backend-hogwarts-dev:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - IN_DOCKER=true
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - postgres-hogwarts-dev
+    restart: on-failure
+
+  # Container for serving frontend during development
+  frontend-hogwarts-dev:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost:8000/graphql
+      - CHOKIDAR_USEPOLLING=true  # Enable polling for Windows compatibility
+    depends_on:
+      - backend-hogwarts-dev
+    command: >
+      sh -c "[ -d 'node_modules' ] || npm install && npm start"
+
+  # Adminer for database management
+  adminer-hogwarts-dev:
+    image: adminer:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres-hogwarts-dev
+    depends_on:
+      - postgres-hogwarts-dev
+
+volumes:
+  postgres_data_dev:
