@@ -44,8 +44,9 @@ services:
       - CHOKIDAR_USEPOLLING=true  # Enable polling for Windows compatibility
     depends_on:
       - backend-hogwarts-dev
-    command: >
-      sh -c "[ -d 'node_modules' ] || npm install && npm start"
+    # Keep container running
+    command: tail -f /dev/null
+    restart: always
 
   # Adminer for database management
   adminer-hogwarts-dev:
