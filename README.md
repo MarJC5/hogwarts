@@ -25,7 +25,7 @@ This project is a web application for Hogwarts teachers to manage house points. 
 ### Quick Setup
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/hogwarts.git
+   git clone https://github.com/MarJC5/hogwarts.git
    cd hogwarts
    ```
 
